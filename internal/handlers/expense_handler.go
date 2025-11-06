@@ -1,11 +1,12 @@
 package handlers
 
 import (
+	"net/http"
+	"strconv"
+
 	"flypro-assessment-ayo/internal/dto"
 	"flypro-assessment-ayo/internal/services"
 	"flypro-assessment-ayo/internal/utils"
-	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
@@ -156,4 +157,20 @@ func (h *ExpenseHandler) DeleteExpense(c *gin.Context) {
 	}
 
 	c.Status(http.StatusNoContent)
+}
+
+// getUserIDFromContext extracts user ID from context
+// In a real application, this would come from authentication middleware
+func getUserIDFromContext(c *gin.Context) uint {
+	userIDStr := c.GetHeader("X-User-ID")
+	if userIDStr == "" {
+		return 1 // Default for testing
+	}
+
+	userID, err := strconv.ParseUint(userIDStr, 10, 32)
+	if err != nil {
+		return 1
+	}
+
+	return uint(userID)
 }
