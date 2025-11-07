@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: flypro_postgres
+    environment:
+      POSTGRES_USER: flypro_user
+      POSTGRES_PASSWORD: flypro_password
+      POSTGRES_DB: flypro_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U flypro_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: flypro_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: flypro_app
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: flypro_user
+      DB_PASSWORD: flypro_password
+      DB_NAME: flypro_db
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      SERVER_HOST: 0.0.0.0
+      SERVER_PORT: 8080
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./migrations:/app/migrations
+    command: >
+      sh -c "
+        make migrate-up &&
+        ./flypro-assessment
+      "
+
+volumes:
+  postgres_data:
+  redis_data:
